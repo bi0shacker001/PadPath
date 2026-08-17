@@ -7,3 +7,4 @@ outputs/
 *.user
 *.suo
 src/PadPath/config.local.json
+src/PadPath/AvaloniaUI/

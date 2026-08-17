@@ -1,9 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Threading;
 using PadPath.Input;
 using PadPath.Models;
 using PadPath.Services;
@@ -12,25 +15,40 @@ namespace PadPath;
 
 public partial class MainWindow : Window
 {
+    private TextBlock TitleText => this.FindControl<TextBlock>(nameof(TitleText))!;
+    private TextBlock BreadcrumbText => this.FindControl<TextBlock>(nameof(BreadcrumbText))!;
+    private TextBlock CountText => this.FindControl<TextBlock>(nameof(CountText))!;
+    private TextBlock ControllerText => this.FindControl<TextBlock>(nameof(ControllerText))!;
+    private TextBlock ConfirmationName => this.FindControl<TextBlock>(nameof(ConfirmationName))!;
+    private Avalonia.Controls.Shapes.Ellipse ControllerDot => this.FindControl<Avalonia.Controls.Shapes.Ellipse>(nameof(ControllerDot))!;
+    private Button OpenPrompt => this.FindControl<Button>(nameof(OpenPrompt))!;
+    private Button LaunchButton => this.FindControl<Button>(nameof(LaunchButton))!;
+    private ListBox BrowserList => this.FindControl<ListBox>(nameof(BrowserList))!;
+    private StackPanel RootButtons => this.FindControl<StackPanel>(nameof(RootButtons))!;
+    private Border EmptyPanel => this.FindControl<Border>(nameof(EmptyPanel))!;
+    private Border ConfirmationPanel => this.FindControl<Border>(nameof(ConfirmationPanel))!;
     private readonly LauncherConfig config;
     private readonly bool selectorMode;
     private readonly FileBrowserService browser;
-    private readonly XInputController? controller;
+    private readonly GamepadController? controller;
+    private readonly bool showSetupOnOpen;
     private readonly ObservableCollection<BrowserItem> items = [];
     private RootConfig activeRoot = null!;
     private string currentDirectory = "";
     private string? pendingLaunchPath;
-    private bool gameIsRunning;
     private bool selectionReturned;
     private int rootIndex;
 
-    public MainWindow(LauncherConfig config, bool selectorMode = false)
+    public MainWindow() : this(ConfigService.Load([])) { }
+
+    public MainWindow(LauncherConfig config, bool selectorMode = false, bool showSetupOnOpen = false)
     {
         this.config = config;
         this.selectorMode = selectorMode;
+        this.showSetupOnOpen = showSetupOnOpen;
         browser = new FileBrowserService(config);
         if (!string.Equals(Environment.GetEnvironmentVariable("HANDHELD_LAUNCHER_DISABLE_CONTROLLER"), "1", StringComparison.Ordinal))
-            controller = new XInputController();
+            controller = new GamepadController();
         InitializeComponent();
         TitleText.Text = selectorMode ? "Select an executable" : config.Title;
         if (selectorMode) OpenPrompt.Content = "Ⓐ SELECT";
@@ -40,16 +58,23 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             controller?.Dispose();
-            if (selectorMode && !selectionReturned) Application.Current.Shutdown(1);
+            if (selectorMode && !selectionReturned && Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) desktop.Shutdown(1);
         };
-        Loaded += (_, _) =>
+        Opened += async (_, _) =>
         {
-            if (config.Fullscreen) { WindowStyle = WindowStyle.None; WindowState = WindowState.Maximized; }
+            if (showSetupOnOpen)
+            {
+                var setup = new SetupWindow(config, firstRun: true);
+                if (!await setup.ShowDialog<bool>(this)) { Close(); return; }
+                BuildRootButtons();
+            }
+            if (config.Fullscreen) WindowState = WindowState.FullScreen;
             OpenInitialFolder();
             BrowserList.Focus();
         };
-        CompositionTarget.Rendering += UpdateControllerStatus;
-        StateChanged += (_, _) => { if (gameIsRunning && WindowState != WindowState.Minimized) WindowState = WindowState.Minimized; };
+        var statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        statusTimer.Tick += UpdateControllerStatus;
+        statusTimer.Start();
     }
 
     private void OpenInitialFolder()
@@ -70,7 +95,8 @@ public partial class MainWindow : Window
         for (var i = 0; i < config.Roots.Count; i++)
         {
             var index = i;
-            var button = new Button { Content = config.Roots[i].Name, Style = (Style)FindResource("RootButtonStyle"), Tag = i };
+            var button = new Button { Content = config.Roots[i].Name, Tag = i };
+            button.Classes.Add("rootButton");
             button.Click += (_, _) => OpenRoot(index);
             RootButtons.Children.Add(button);
         }
@@ -82,7 +108,7 @@ public partial class MainWindow : Window
         var rootPath = Environment.ExpandEnvironmentVariables(candidateRoot.Path);
         if (!Directory.Exists(rootPath))
         {
-            MessageBox.Show($"The configured folder does not exist:\n{rootPath}", activeRoot.Name, MessageBoxButton.OK, MessageBoxImage.Warning);
+            _ = DialogService.ShowAsync(this, "Folder unavailable", $"The configured folder does not exist:\n{rootPath}");
             return;
         }
         rootIndex = index;
@@ -101,7 +127,7 @@ public partial class MainWindow : Window
         var relative = Path.GetRelativePath(rootPath, destination);
         BreadcrumbText.Text = relative == "." ? activeRoot.Name : $"{activeRoot.Name}  /  {relative.Replace('\\', '/')}";
         CountText.Text = $"{items.Count(i => !i.IsParent)} ITEMS";
-        EmptyPanel.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyPanel.IsVisible = items.Count == 0;
         if (items.Count > 0) BrowserList.SelectedIndex = 0;
         if (config.RememberLastFolder) ConfigService.SaveLastFolder(destination);
         UpdateRootButtonState();
@@ -111,10 +137,10 @@ public partial class MainWindow : Window
     {
         foreach (Button button in RootButtons.Children)
         {
-            var active = (int)button.Tag == rootIndex;
-            button.BorderBrush = (Brush)FindResource("BorderBrush");
-            button.Background = active ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("PanelBrush");
-            button.Foreground = active ? (Brush)FindResource("AccentTextBrush") : (Brush)FindResource("TextBrush");
+            var active = button.Tag is int index && index == rootIndex;
+            button.BorderBrush = ResourceBrush("BorderBrush");
+            button.Background = ResourceBrush(active ? "AccentBrush" : "PanelBrush");
+            button.Foreground = ResourceBrush(active ? "AccentTextBrush" : "TextBrush");
         }
     }
 
@@ -139,7 +165,7 @@ public partial class MainWindow : Window
         using var writer = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
         writer.WriteLine(json);
         selectionReturned = true;
-        Application.Current.Shutdown(0);
+        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop) desktop.Shutdown(0);
     }
 
     private void Launch(string path)
@@ -148,7 +174,7 @@ public partial class MainWindow : Window
         {
             pendingLaunchPath = path;
             ConfirmationName.Text = Path.GetFileNameWithoutExtension(path);
-            ConfirmationPanel.Visibility = Visibility.Visible;
+            ConfirmationPanel.IsVisible = true;
             LaunchButton.Focus();
             return;
         }
@@ -160,19 +186,17 @@ public partial class MainWindow : Window
         try
         {
             var target = TargetLauncher.Launch(path);
-            gameIsRunning = true;
             WindowState = WindowState.Minimized;
 
             var grace = Task.Delay(TimeSpan.FromSeconds(Math.Clamp(config.MinimumHandoffSeconds, 5, 120)));
             try { await Task.WhenAll(target.WaitForExitAsync(), grace); }
             catch (InvalidOperationException) { await grace; }
 
-            gameIsRunning = false;
-            WindowState = WindowState.Maximized;
+            WindowState = config.Fullscreen ? WindowState.FullScreen : WindowState.Normal;
             Activate();
             BrowserList.Focus();
         }
-        catch (Exception ex) { gameIsRunning = false; WindowState = WindowState.Maximized; MessageBox.Show(ex.Message, "Launch failed", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { WindowState = config.Fullscreen ? WindowState.FullScreen : WindowState.Normal; await DialogService.ShowAsync(this, "Launch failed", ex.Message); }
     }
 
     private void GoBack()
@@ -182,10 +206,10 @@ public partial class MainWindow : Window
         if (parent is not null && FileBrowserService.IsWithinRoot(parent, rootPath)) Navigate(parent);
     }
 
-    private void HandleGamepad(GamepadAction action) => Dispatcher.Invoke(() =>
+    private void HandleGamepad(GamepadAction action) => Dispatcher.UIThread.Post(() =>
     {
         if (action == GamepadAction.Quit) { Close(); return; }
-        if (ConfirmationPanel.Visibility == Visibility.Visible)
+        if (ConfirmationPanel.IsVisible)
         {
             if (action == GamepadAction.Accept && pendingLaunchPath is not null) ConfirmLaunch();
             else if (action is GamepadAction.Back or GamepadAction.Quit) CancelLaunch();
@@ -208,13 +232,13 @@ public partial class MainWindow : Window
     {
         if (items.Count == 0) return;
         BrowserList.SelectedIndex = Math.Clamp(BrowserList.SelectedIndex + delta, 0, items.Count - 1);
-        BrowserList.ScrollIntoView(BrowserList.SelectedItem);
+        if (BrowserList.SelectedItem is not null) BrowserList.ScrollIntoView(BrowserList.SelectedItem);
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Q) { Close(); e.Handled = true; return; }
-        if (ConfirmationPanel.Visibility == Visibility.Visible)
+        if (ConfirmationPanel.IsVisible)
         {
             if (e.Key is Key.Enter or Key.Space or Key.Y) ConfirmLaunch();
             else if (e.Key is Key.Escape or Key.Back or Key.N) CancelLaunch();
@@ -225,19 +249,19 @@ public partial class MainWindow : Window
         else if (e.Key == Key.Back || e.Key == Key.Escape) GoBack();
         else if (e.Key == Key.Tab) OpenRoot((rootIndex + 1) % config.Roots.Count);
         else if (e.Key == Key.F2) OpenSettings();
-        else if (e.Key == Key.F11) { WindowStyle = WindowStyle == WindowStyle.None ? WindowStyle.SingleBorderWindow : WindowStyle.None; WindowState = WindowState.Maximized; }
+        else if (e.Key == Key.F11) WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
     }
 
-    private void BrowserList_MouseDoubleClick(object sender, MouseButtonEventArgs e) => ActivateSelection();
+    private void BrowserList_DoubleTapped(object? sender, TappedEventArgs e) => ActivateSelection();
     private void OpenPrompt_Click(object sender, RoutedEventArgs e) => ActivateSelection();
     private void BackPrompt_Click(object sender, RoutedEventArgs e) => GoBack();
     private void RootsPrompt_Click(object sender, RoutedEventArgs e) => OpenRoot((rootIndex + 1) % config.Roots.Count);
     private void SettingsPrompt_Click(object sender, RoutedEventArgs e) => OpenSettings();
     private void ClosePrompt_Click(object sender, RoutedEventArgs e) => Close();
-    private void OpenSettings()
+    private async void OpenSettings()
     {
-        var setup = new SetupWindow(config, firstRun: false) { Owner = this };
-        if (setup.ShowDialog() == true) { BuildRootButtons(); OpenInitialFolder(); }
+        var setup = new SetupWindow(config, firstRun: false);
+        if (await setup.ShowDialog<bool>(this)) { BuildRootButtons(); OpenInitialFolder(); }
         BrowserList.Focus();
     }
     private void LaunchButton_Click(object sender, RoutedEventArgs e) => ConfirmLaunch();
@@ -246,13 +270,13 @@ public partial class MainWindow : Window
     {
         var path = pendingLaunchPath;
         pendingLaunchPath = null;
-        ConfirmationPanel.Visibility = Visibility.Collapsed;
+        ConfirmationPanel.IsVisible = false;
         if (path is not null) LaunchNow(path);
     }
     private void CancelLaunch()
     {
         pendingLaunchPath = null;
-        ConfirmationPanel.Visibility = Visibility.Collapsed;
+        ConfirmationPanel.IsVisible = false;
         BrowserList.Focus();
     }
     private void BrowserList_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
@@ -261,4 +285,7 @@ public partial class MainWindow : Window
         ControllerDot.Fill = new SolidColorBrush(controller?.Connected == true ? Color.FromRgb(105, 230, 195) : Color.FromRgb(105, 117, 138));
         ControllerText.Text = controller?.Connected == true ? "CONTROLLER READY" : "KEYBOARD / MOUSE";
     }
+
+    private static IBrush? ResourceBrush(string key) => Application.Current?.Resources[key] as IBrush;
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }

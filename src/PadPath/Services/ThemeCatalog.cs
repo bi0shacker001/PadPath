@@ -1,6 +1,6 @@
-using System.Windows;
-using System.Windows.Media;
-using Microsoft.Win32;
+using Avalonia;
+using Avalonia.Media;
+using Avalonia.Styling;
 using PadPath.Models;
 
 namespace PadPath.Services;
@@ -38,46 +38,41 @@ public static class ThemeCatalog
         Set("BorderBrush", resolved switch { "Lighter" => "#59677A", "Light" => "#657286", "Darker" => "#74849D", _ => "#61718A" }); Set("BadgeBrush", resolved switch { "Lighter" => "#E2E8F0", "Light" => "#E7ECF3", "Darker" => "#202834", _ => "#2B3441" });
         var accent = light ? palette.LightAccent : palette.DarkAccent;
         Set("AccentBrush", accent);
-        Set("AccentTextBrush", RelativeLuminance((Color)ColorConverter.ConvertFromString(accent)) > .45 ? "#101318" : "#FFFFFF");
+        Set("AccentTextBrush", RelativeLuminance(Color.Parse(accent)) > .45 ? "#101318" : "#FFFFFF");
         Set("AccentSecondaryBrush", light ? palette.LightAccentSecondary : palette.DarkAccentSecondary);
         Set("AccentTertiaryBrush", light ? palette.LightAccentTertiary : palette.DarkAccentTertiary);
         var secondary = light ? palette.LightAccentSecondary : palette.DarkAccentSecondary;
-        Set("DockTextBrush", RelativeLuminance((Color)ColorConverter.ConvertFromString(secondary)) > .45 ? "#101318" : "#FFFFFF");
+        Set("DockTextBrush", RelativeLuminance(Color.Parse(secondary)) > .45 ? "#101318" : "#FFFFFF");
         SetPalette(light ? palette.LightAccent : palette.DarkAccent, light ? palette.LightAccentSecondary : palette.DarkAccentSecondary, light ? palette.LightAccentTertiary : palette.DarkAccentTertiary);
     }
 
     private static string ResolveAppearance(string? appearance)
     {
-        if (SystemParameters.HighContrast || appearance == "High Contrast") return "High Contrast";
+        if (appearance == "High Contrast") return "High Contrast";
         if (appearance is "Lighter" or "Light" or "Dark" or "Darker") return appearance;
-        try
-        {
-            var value = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")?.GetValue("AppsUseLightTheme");
-            return value is int i && i != 0 ? "Light" : "Dark";
-        }
-        catch { return "Dark"; }
+        return Application.Current?.ActualThemeVariant == ThemeVariant.Light ? "Light" : "Dark";
     }
 
     private static void ApplyHighContrast()
     {
-        Set("BackgroundBrush", SystemColors.WindowColor); Set("PanelBrush", SystemColors.WindowColor);
-        Set("TextBrush", SystemColors.WindowTextColor); Set("MutedBrush", SystemColors.WindowTextColor);
-        Set("SelectionBrush", SystemColors.HighlightColor); Set("SelectionTextBrush", SystemColors.HighlightTextColor);
-        Set("BorderBrush", SystemColors.WindowTextColor); Set("BadgeBrush", SystemColors.WindowColor);
-        Set("AccentBrush", SystemColors.HotTrackColor); Set("AccentSecondaryBrush", SystemColors.HighlightColor); Set("AccentTertiaryBrush", SystemColors.WindowTextColor);
-        Set("AccentTextBrush", SystemColors.HighlightTextColor); Set("DockTextBrush", SystemColors.HighlightTextColor);
-        Application.Current.Resources["PaletteBrush"] = SystemColors.HighlightBrush;
+        Set("BackgroundBrush", "#000000"); Set("PanelBrush", "#000000");
+        Set("TextBrush", "#FFFFFF"); Set("MutedBrush", "#FFFFFF");
+        Set("SelectionBrush", "#FFFF00"); Set("SelectionTextBrush", "#000000");
+        Set("BorderBrush", "#FFFFFF"); Set("BadgeBrush", "#000000");
+        Set("AccentBrush", "#FFFF00"); Set("AccentSecondaryBrush", "#FFFF00"); Set("AccentTertiaryBrush", "#FFFFFF");
+        Set("AccentTextBrush", "#000000"); Set("DockTextBrush", "#000000");
+        Application.Current!.Resources["PaletteBrush"] = new SolidColorBrush(Color.Parse("#FFFF00"));
     }
 
-    private static void Set(string key, string value) => Set(key, (Color)ColorConverter.ConvertFromString(value));
-    private static void Set(string key, Color value) => Application.Current.Resources[key] = new SolidColorBrush(value);
+    private static void Set(string key, string value) => Set(key, Color.Parse(value));
+    private static void Set(string key, Color value) => Application.Current!.Resources[key] = new SolidColorBrush(value);
     private static void SetPalette(string first, string second, string third)
     {
-        var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
-        brush.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(first), 0));
-        brush.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(second), .5));
-        brush.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(third), 1));
-        Application.Current.Resources["PaletteBrush"] = brush;
+        var brush = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative) };
+        brush.GradientStops.Add(new GradientStop(Color.Parse(first), 0));
+        brush.GradientStops.Add(new GradientStop(Color.Parse(second), .5));
+        brush.GradientStops.Add(new GradientStop(Color.Parse(third), 1));
+        Application.Current!.Resources["PaletteBrush"] = brush;
     }
     private static double RelativeLuminance(Color c)
     {

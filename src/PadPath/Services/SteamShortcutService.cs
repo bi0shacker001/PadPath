@@ -8,11 +8,11 @@ public static class SteamShortcutService
 {
     public static string AddLauncher(string executablePath)
     {
-        if (Process.GetProcessesByName("steam").Length > 0)
+        if (new[] { "steam", "steamwebhelper", "steam_osx" }.Any(name => Process.GetProcessesByName(name).Length > 0))
             throw new InvalidOperationException("Close Steam completely, then try Add to Steam again. Steam can overwrite shortcuts while it is running.");
 
-        var steamPath = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")?.GetValue("SteamPath") as string;
-        if (string.IsNullOrWhiteSpace(steamPath)) throw new InvalidOperationException("Steam was not found for this Windows user.");
+        var steamPath = FindSteamPath();
+        if (string.IsNullOrWhiteSpace(steamPath)) throw new InvalidOperationException("Steam was not found for this user.");
         var userData = Path.Combine(steamPath, "userdata");
         var configs = Directory.Exists(userData)
             ? Directory.EnumerateDirectories(userData).Where(d => long.TryParse(Path.GetFileName(d), out _)).Select(d => Path.Combine(d, "config")).Where(Directory.Exists).ToList()
@@ -36,6 +36,23 @@ public static class SteamShortcutService
         output.WriteByte(0x08);
         File.WriteAllBytes(shortcutPath, output.ToArray());
         return "Added to Steam. Start Steam and look under Non-Steam Games.";
+    }
+
+    private static string? FindSteamPath()
+    {
+        if (OperatingSystem.IsWindows())
+            return Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam")?.GetValue("SteamPath") as string;
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var candidates = OperatingSystem.IsMacOS()
+            ? new[] { Path.Combine(home, "Library", "Application Support", "Steam") }
+            : new[]
+            {
+                Path.Combine(home, ".steam", "steam"),
+                Path.Combine(home, ".local", "share", "Steam"),
+                Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam")
+            };
+        return candidates.FirstOrDefault(Directory.Exists);
     }
 
     private static byte[] CreateEmpty()

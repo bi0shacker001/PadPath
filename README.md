@@ -3,14 +3,14 @@
 [![CI](https://github.com/bi0shacker001/PadPath/actions/workflows/ci.yml/badge.svg)](https://github.com/bi0shacker001/PadPath/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-A controller-first Windows file browser that launches games without building a library first. Add one launcher to Steam, browse any configured game folder over Steam Link, choose an executable, and the launcher gets out of the way.
+A controller-first, cross-platform file browser that launches games without building a library first. Add one launcher to Steam, browse any configured game folder over Steam Link, choose a launchable file, and PadPath gets out of the way.
 
 The MVP is designed for small 16:9 handheld screens such as the Retroid Pocket 5: one pane, large rows, strong focus outlines, short breadcrumbs, and persistent button prompts.
 
 ## What works
 
 - Multiple named starting folders, switchable without leaving the browser
-- Full navigation with an Xbox-compatible controller through Windows XInput
+- Full navigation with SDL3-compatible controllers on Windows, Linux, and macOS
 - Keyboard and mouse fallback
 - Configurable launchable extensions and hidden/system-file filtering
 - Optional confirmation before launch
@@ -18,7 +18,7 @@ The MVP is designed for small 16:9 handheld screens such as the Retroid Pocket 5
 - Remembers the last visited folder within a configured root
 - Full-screen mode with no desktop chrome
 - Twelve built-in high-contrast palettes, including light, dark, and queer pride themes
-- Portable, self-contained single-file Windows build
+- Self-contained builds for Windows x64/ARM64, Linux x64/ARM64, and macOS Intel/Apple Silicon
 
 No games need to be scanned, imported, or manually registered.
 
@@ -51,11 +51,12 @@ The result is emitted as compact single-line JSON so another process can deseria
 | D-pad left/right | Page Up/Down | Move five rows |
 | A | Enter / double-click | Open folder or launch file |
 | B | Backspace / Escape | Parent folder |
-| Menu | Tab | Next configured root |
-| View | Q / Ctrl+Q | Close launcher |
+| Left shoulder | Tab | Next configured root |
+| Y / Triangle | F2 | Settings |
+| Start | Q / Ctrl+Q | Close launcher |
 | — | F11 | Toggle window chrome |
 
-Steam Input should expose the remote controller as an Xbox/XInput controller. The first connected controller is used.
+Steam Input exposes the remote controller to SDL3. The first connected controller is used, with hot-plug support.
 
 ## Quick start
 
@@ -72,13 +73,13 @@ That is the entire setup. The Steam entry opens the folder browser; individual g
 
 ### Build from source
 
-Requirements: Windows 10/11 and the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+Requirements: Windows, Linux, or macOS and the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
 
 ```powershell
 .\scripts\publish.ps1
 ```
 
-The portable build is written to `dist`. Copy `config.example.json` to `config.json`, edit the roots, and run `PadPath.exe`.
+The portable build is written to `dist`. Pass `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, or `osx-arm64` to `-Runtime` for another platform.
 
 To install under your local app-data folder:
 
@@ -92,7 +93,7 @@ To build the signed-style single-file installer locally, install Inno Setup 6 an
 .\scripts\build-installer.ps1
 ```
 
-Tagged GitHub builds attach the installer automatically; ordinary pushes also retain the installer and portable app as workflow artifacts.
+Tagged GitHub builds attach the Windows installer and all six portable archives automatically. On Linux, extract the matching archive and run `sh install.sh`. On macOS, run `sh install-macos.sh` to create `~/Applications/PadPath.app`.
 
 ### Add to Steam
 
@@ -101,11 +102,11 @@ Tagged GitHub builds attach the installer automatically; ordinary pushes also re
 3. In its Steam properties, rename it and optionally add artwork.
 4. Launch it once locally to validate the configured roots, then use it through Steam Link.
 
-The launched game inherits normal Windows shell launch behavior. The browser force-minimizes while the game runs but remains alive as Steam's tracked process, preventing Steam Link from disconnecting during startup. When the game closes, the browser returns full-screen. Only the user's Close command ends the launcher session.
+The launched game inherits normal platform shell behavior. The browser force-minimizes while the game runs but remains alive as Steam's tracked process, preventing Steam Link from disconnecting during startup. When the game closes, the browser returns full-screen. Only the user's Close command ends the launcher session.
 
 ## Configuration
 
-Normal installations store configuration in `%LOCALAPPDATA%\PadPath\config.json`. A portable `config.json` beside the executable takes precedence. Alternatively, pass a different file:
+Normal installations use the platform local-application-data directory (`%LOCALAPPDATA%\PadPath` on Windows, `~/.local/share/PadPath` on most Linux systems, and `~/Library/Application Support/PadPath` on macOS). A portable `config.json` beside the executable takes precedence.
 
 ```text
 PadPath.exe --config "D:\Launcher\living-room.json"
@@ -118,14 +119,14 @@ Environment variables such as `%USERPROFILE%` are supported in root paths.
 | `fullscreen` | `true` | Borderless full-screen UI |
 | `theme` | `Midnight Mint` | Built-in color palette; choose visually from Settings |
 | `appearance` | `System` | `System`, `Lighter`, `Light`, `Dark`, `Darker`, or `High Contrast` |
-| `showHidden` / `showSystem` | `false` | Include files with those Windows attributes |
-| `allowedExtensions` | exe, bat, cmd, lnk | Files displayed as launchable |
+| `showHidden` / `showSystem` | `false` | Include files with hidden/system attributes |
+| `allowedExtensions` | platform launchables | Files displayed as launchable, including exe/app/sh/desktop/AppImage |
 | `confirmBeforeLaunch` | `true` | Ask before spawning a selected file |
 | `minimumHandoffSeconds` | `20` | Minimum time to stay minimized if a bootstrap process exits immediately |
 | `rememberLastFolder` | `true` | Resume the last folder when it still belongs to a configured root |
 | `roots` | required | Named folders available at the top of the screen |
 
-The saved last-folder state lives in `%LOCALAPPDATA%\PadPath\state.json`. The launcher never navigates above the active configured root.
+The saved last-folder state lives beside the user configuration. The launcher never navigates above the active configured root.
 
 ### Included themes
 
@@ -141,7 +142,7 @@ Per-game Steam and Playnite export remains modular and disabled. A future explic
 
 ```text
 src/PadPath/
-  Input/           XInput polling and repeat behavior
+  Input/           SDL3 gamepad polling and repeat behavior
   Models/          configuration and browser items
   Services/        config, safe-root browsing, and process launch
   MainWindow.*     handheld UI and navigation state
@@ -150,8 +151,8 @@ scripts/           portable publish and local install helpers
 
 ## Current MVP limits
 
-- XInput controller 1 only; no DirectInput/HID fallback yet
-- Windows x64 default build (the publish script also accepts `win-arm64`)
+- The first SDL3-recognized controller is used
+- Windows has an Inno Setup installer; Linux/macOS use portable archives plus install scripts
 - The first-run setup and folder picker are mouse/keyboard-oriented; the launcher itself is controller-first
 - No per-file arguments or environment overrides yet
 - Steam/Playnite metadata export is a documented extension point, not implemented

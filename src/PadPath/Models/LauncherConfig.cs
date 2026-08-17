@@ -11,7 +11,7 @@ public sealed class LauncherConfig
     public bool ConfirmBeforeLaunch { get; set; } = true;
     public int MinimumHandoffSeconds { get; set; } = 20;
     public bool RememberLastFolder { get; set; } = true;
-    public List<string> AllowedExtensions { get; set; } = [".exe", ".bat", ".cmd", ".lnk"];
+    public List<string> AllowedExtensions { get; set; } = [".exe", ".bat", ".cmd", ".lnk", ".app", ".sh", ".desktop", ".AppImage"];
     public List<RootConfig> Roots { get; set; } = [];
     public IntegrationConfig Integrations { get; set; } = new();
 }

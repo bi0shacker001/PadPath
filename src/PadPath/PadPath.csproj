@@ -1,12 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>PadPath</AssemblyName>
     <RootNamespace>PadPath</RootNamespace>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <NoWarn>$(NoWarn);CS9057</NoWarn>
   </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="**\*.xaml" />
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.0" />
+    <PackageReference Include="SDL3-CS" Version="3.4.12.4" />
+    <PackageReference Include="SDL3-CS.Windows" Version="3.4.12.1" />
+    <PackageReference Include="SDL3-CS.Linux" Version="3.4.12.1" />
+    <PackageReference Include="SDL3-CS.MacOS" Version="3.4.12.1" />
+  </ItemGroup>
 </Project>

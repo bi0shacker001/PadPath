@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
-using System.Windows;
-using Microsoft.Win32;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+using Avalonia.Platform.Storage;
 using PadPath.Models;
 using PadPath.Services;
 
@@ -8,16 +10,21 @@ namespace PadPath;
 
 public partial class SetupWindow : Window
 {
+    private ListBox FolderList => this.FindControl<ListBox>(nameof(FolderList))!;
+    private CheckBox ConfirmCheck => this.FindControl<CheckBox>(nameof(ConfirmCheck))!;
+    private CheckBox HiddenCheck => this.FindControl<CheckBox>(nameof(HiddenCheck))!;
+    private ComboBox ThemeCombo => this.FindControl<ComboBox>(nameof(ThemeCombo))!;
+    private ComboBox AppearanceCombo => this.FindControl<ComboBox>(nameof(AppearanceCombo))!;
     private readonly ObservableCollection<RootConfig> roots;
-    private readonly bool firstRun;
     private readonly string originalTheme;
     private readonly string originalAppearance;
     public LauncherConfig Config { get; }
 
+    public SetupWindow() : this(ConfigService.Load([]), false) { }
+
     public SetupWindow(LauncherConfig config, bool firstRun)
     {
         InitializeComponent();
-        this.firstRun = firstRun;
         originalTheme = config.Theme;
         originalAppearance = config.Appearance;
         Config = config;
@@ -30,40 +37,42 @@ public partial class SetupWindow : Window
         AppearanceCombo.ItemsSource = ThemeCatalog.Appearances;
         AppearanceCombo.SelectedItem = ThemeCatalog.Appearances.FirstOrDefault(a => a.Equals(config.Appearance, StringComparison.OrdinalIgnoreCase)) ?? "System";
         UpdateThemePreview();
-        CancelButtonState();
-        Closed += (_, _) => { if (DialogResult != true) ThemeCatalog.Apply(originalTheme, originalAppearance); };
+        Closed += (_, _) => { if (!saved) ThemeCatalog.Apply(originalTheme, originalAppearance); };
     }
 
-    private void AddFolder_Click(object sender, RoutedEventArgs e)
+    private bool saved;
+
+    private async void AddFolder_Click(object? sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Choose a folder containing games", Multiselect = false };
-        if (dialog.ShowDialog(this) == true && !roots.Any(r => string.Equals(r.Path, dialog.FolderName, StringComparison.OrdinalIgnoreCase)))
-            roots.Add(new RootConfig { Name = new DirectoryInfo(dialog.FolderName).Name, Path = dialog.FolderName });
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Choose a folder containing games", AllowMultiple = false });
+        var path = folders.FirstOrDefault()?.TryGetLocalPath();
+        if (!string.IsNullOrWhiteSpace(path) && !roots.Any(r => string.Equals(r.Path, path, StringComparison.OrdinalIgnoreCase)))
+            roots.Add(new RootConfig { Name = new DirectoryInfo(path).Name, Path = path });
     }
     private void RemoveFolder_Click(object sender, RoutedEventArgs e) { if (FolderList.SelectedItem is RootConfig root) roots.Remove(root); }
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        if (roots.Count == 0) { MessageBox.Show("Add at least one game folder.", "Folders required", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        if (roots.Count == 0) { _ = DialogService.ShowAsync(this, "Folders required", "Add at least one game folder."); return; }
         Config.Roots = roots.ToList(); Config.ConfirmBeforeLaunch = ConfirmCheck.IsChecked == true; Config.ShowHidden = HiddenCheck.IsChecked == true;
         if (ThemeCombo.SelectedItem is ThemeDefinition theme) Config.Theme = theme.Name;
         Config.Appearance = AppearanceCombo.SelectedItem as string ?? "System";
-        ConfigService.Save(Config); DialogResult = true;
+        ConfigService.Save(Config); saved = true; Close(true);
     }
-    private void SteamButton_Click(object sender, RoutedEventArgs e)
+    private async void SteamButton_Click(object? sender, RoutedEventArgs e)
     {
-        try { MessageBox.Show(SteamShortcutService.AddLauncher(Environment.ProcessPath!), "Steam", MessageBoxButton.OK, MessageBoxImage.Information); }
-        catch (Exception ex) { MessageBox.Show(ex.Message, "Could not add to Steam", MessageBoxButton.OK, MessageBoxImage.Warning); }
+        try { await DialogService.ShowAsync(this, "Steam", SteamShortcutService.AddLauncher(Environment.ProcessPath!)); }
+        catch (Exception ex) { await DialogService.ShowAsync(this, "Could not add to Steam", ex.Message); }
     }
-    private void Cancel_Click(object sender, RoutedEventArgs e) { DialogResult = false; }
-    private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
+    private void ThemeCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         UpdateThemePreview();
     }
-    private void AppearanceCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => UpdateThemePreview();
+    private void AppearanceCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e) => UpdateThemePreview();
     private void UpdateThemePreview()
     {
         if (ThemeCombo?.SelectedItem is not ThemeDefinition theme || AppearanceCombo?.SelectedItem is not string appearance) return;
         ThemeCatalog.Apply(theme.Name, appearance);
     }
-    private void CancelButtonState() { if (firstRun) Closing += (_, e) => { if (DialogResult != true) e.Cancel = false; }; }
+    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 }

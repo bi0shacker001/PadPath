@@ -8,7 +8,7 @@
   "confirmBeforeLaunch": true,
   "minimumHandoffSeconds": 20,
   "rememberLastFolder": true,
-  "allowedExtensions": [ ".exe", ".bat", ".cmd", ".lnk" ],
+  "allowedExtensions": [ ".exe", ".bat", ".cmd", ".lnk", ".app", ".sh", ".desktop", ".AppImage" ],
   "roots": [
     { "name": "Installed", "path": "D:\\Games" },
     { "name": "Indie", "path": "C:\\Users\\YOUR_NAME\\Games" },
