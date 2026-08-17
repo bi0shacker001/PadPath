@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
-namespace HandheldLauncher.Input;
+namespace PadPath.Input;
 
 public enum GamepadAction { Up, Down, Left, Right, Accept, Back, Roots, Settings, Quit }
 

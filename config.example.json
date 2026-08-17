@@ -1,10 +1,12 @@
 {
   "title": "Choose a game",
+  "theme": "Dreams",
+  "appearance": "System",
   "fullscreen": true,
   "showHidden": false,
   "showSystem": false,
   "confirmBeforeLaunch": true,
-  "exitAfterLaunch": true,
+  "minimumHandoffSeconds": 20,
   "rememberLastFolder": true,
   "allowedExtensions": [ ".exe", ".bat", ".cmd", ".lnk" ],
   "roots": [

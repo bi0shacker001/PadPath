@@ -1,13 +1,14 @@
 using System.Text.Json;
-using HandheldLauncher.Models;
+using PadPath.Models;
 
-namespace HandheldLauncher.Services;
+namespace PadPath.Services;
 
 public static class ConfigService
 {
-    public static string UserDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HandheldLauncher");
+    public static string UserDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PadPath");
+    private static string LegacyUserDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HandheldLauncher");
     public static string ConfigPath { get; private set; } = Path.Combine(UserDirectory, "config.json");
-    public static string StatePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HandheldLauncher", "state.json");
+    public static string StatePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PadPath", "state.json");
     public static bool NeedsSetup { get; private set; }
 
     public static LauncherConfig Load(string[] args)
@@ -16,6 +17,7 @@ public static class ConfigService
         if (configArg >= 0 && configArg + 1 < args.Length) ConfigPath = Path.GetFullPath(args[configArg + 1]);
         else if (!File.Exists(ConfigPath))
         {
+            MigrateLegacyConfiguration();
             var portablePath = Path.Combine(AppContext.BaseDirectory, "config.json");
             if (File.Exists(portablePath)) ConfigPath = portablePath;
         }
@@ -31,6 +33,16 @@ public static class ConfigService
         config.Roots = config.Roots.Where(r => !string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(r.Path)).ToList();
         if (config.Roots.Count == 0) throw new InvalidDataException("Configure at least one root folder.");
         return config;
+    }
+
+    private static void MigrateLegacyConfiguration()
+    {
+        var legacyConfig = Path.Combine(LegacyUserDirectory, "config.json");
+        if (!File.Exists(legacyConfig) || File.Exists(ConfigPath)) return;
+        Directory.CreateDirectory(UserDirectory);
+        File.Copy(legacyConfig, ConfigPath);
+        var legacyState = Path.Combine(LegacyUserDirectory, "state.json");
+        if (File.Exists(legacyState)) File.Copy(legacyState, StatePath, overwrite: false);
     }
 
     public static void Save(LauncherConfig config)

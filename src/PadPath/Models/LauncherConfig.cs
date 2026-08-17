@@ -1,13 +1,15 @@
-namespace HandheldLauncher.Models;
+namespace PadPath.Models;
 
 public sealed class LauncherConfig
 {
     public string Title { get; set; } = "Choose a game";
+    public string Theme { get; set; } = "Midnight Mint";
+    public string Appearance { get; set; } = "System";
     public bool Fullscreen { get; set; } = true;
     public bool ShowHidden { get; set; }
     public bool ShowSystem { get; set; }
     public bool ConfirmBeforeLaunch { get; set; } = true;
-    public bool ExitAfterLaunch { get; set; } = true;
+    public int MinimumHandoffSeconds { get; set; } = 20;
     public bool RememberLastFolder { get; set; } = true;
     public List<string> AllowedExtensions { get; set; } = [".exe", ".bat", ".cmd", ".lnk"];
     public List<RootConfig> Roots { get; set; } = [];

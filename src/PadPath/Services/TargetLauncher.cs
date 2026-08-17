@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace HandheldLauncher.Services;
+namespace PadPath.Services;
 
 public static class TargetLauncher
 {

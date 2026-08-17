@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace HandheldLauncher;
+namespace PadPath;
 
 public partial class App : Application
 {
@@ -9,12 +9,13 @@ public partial class App : Application
         base.OnStartup(e);
         DispatcherUnhandledException += (_, args) =>
         {
-            MessageBox.Show(args.Exception.Message, "Handheld Launcher", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(args.Exception.Message, "PadPath", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
             Shutdown(1);
         };
 
         var config = Services.ConfigService.Load(e.Args);
+        Services.ThemeCatalog.Apply(config.Theme, config.Appearance);
         var setupRequested = e.Args.Any(a => a.Equals("--setup", StringComparison.OrdinalIgnoreCase));
         if (Services.ConfigService.NeedsSetup || setupRequested)
         {

@@ -1,19 +1,19 @@
-#define MyAppName "Handheld Launcher"
-#define MyAppVersion "0.1.0"
-#define MyAppPublisher "Handheld Launcher contributors"
-#define MyAppExeName "HandheldLauncher.exe"
+#define MyAppName "PadPath"
+#define MyAppVersion "0.2.0"
+#define MyAppPublisher "PadPath contributors"
+#define MyAppExeName "PadPath.exe"
 
 [Setup]
 AppId={{E9179595-8B6B-4F34-9A48-CF374059125E}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Programs\Handheld Launcher
+DefaultDirName={localappdata}\Programs\PadPath
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\outputs
-OutputBaseFilename=HandheldLauncher-Setup-{#MyAppVersion}
+OutputBaseFilename=PadPath-Setup-{#MyAppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern

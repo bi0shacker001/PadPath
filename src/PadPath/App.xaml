@@ -1,0 +1,21 @@
+<Application x:Class="PadPath.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#0D111A"/>
+        <SolidColorBrush x:Key="PanelBrush" Color="#161C29"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#F4F7FC"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#9AA7BC"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#69E6C3"/>
+        <SolidColorBrush x:Key="SelectionBrush" Color="#183A3A"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#34415B"/>
+        <SolidColorBrush x:Key="BadgeBrush" Color="#29354B"/>
+        <SolidColorBrush x:Key="SelectionTextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="AccentSecondaryBrush" Color="#43BFA8"/>
+        <SolidColorBrush x:Key="AccentTertiaryBrush" Color="#A8FFF0"/>
+        <SolidColorBrush x:Key="AccentTextBrush" Color="#08120F"/>
+        <SolidColorBrush x:Key="DockTextBrush" Color="#08120F"/>
+        <LinearGradientBrush x:Key="PaletteBrush" StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#72E6C5" Offset="0"/><GradientStop Color="#43BFA8" Offset="0.5"/><GradientStop Color="#A8FFF0" Offset="1"/></LinearGradientBrush>
+    </Application.Resources>
+</Application>

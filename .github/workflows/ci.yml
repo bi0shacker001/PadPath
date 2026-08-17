@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore PadPath.sln
+      - name: Verify formatting
+        run: dotnet format PadPath.sln --no-restore --verify-no-changes
+      - name: Build
+        run: dotnet build PadPath.sln -c Release --no-restore
+      - name: Publish smoke test
+        shell: pwsh
+        run: .\scripts\publish.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PadPath-portable-win-x64
+          path: dist/
+          if-no-files-found: error

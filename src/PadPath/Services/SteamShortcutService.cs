@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Microsoft.Win32;
 
-namespace HandheldLauncher.Services;
+namespace PadPath.Services;
 
 public static class SteamShortcutService
 {
@@ -21,14 +21,14 @@ public static class SteamShortcutService
 
         var configDir = configs.OrderByDescending(Directory.GetLastWriteTimeUtc).First();
         var shortcutPath = Path.Combine(configDir, "shortcuts.vdf");
-        var name = "Handheld Launcher";
+        var name = "PadPath";
         var existing = File.Exists(shortcutPath) ? File.ReadAllBytes(shortcutPath) : CreateEmpty();
-        if (ContainsShortcut(existing, executablePath)) return "Handheld Launcher is already in this Steam library.";
+        if (ContainsShortcut(existing, executablePath)) return "PadPath is already in this Steam library.";
         var count = CountTopLevelEntries(existing);
         var entry = BuildEntry(count, name, executablePath);
         if (existing.Length == 0 || existing[^1] != 0x08) throw new InvalidDataException("Steam shortcuts file has an unexpected format; it was not changed.");
 
-        var backup = shortcutPath + ".handheld-launcher.bak";
+        var backup = shortcutPath + ".padpath.bak";
         if (File.Exists(shortcutPath)) File.Copy(shortcutPath, backup, true);
         using var output = new MemoryStream();
         output.Write(existing, 0, existing.Length - 1);

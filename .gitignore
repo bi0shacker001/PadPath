@@ -6,4 +6,4 @@ outputs/
 .vs/
 *.user
 *.suo
-src/HandheldLauncher/config.local.json
+src/PadPath/config.local.json

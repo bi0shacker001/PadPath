@@ -1,6 +1,6 @@
-using HandheldLauncher.Models;
+using PadPath.Models;
 
-namespace HandheldLauncher.Services;
+namespace PadPath.Services;
 
 public sealed class FileBrowserService(LauncherConfig config)
 {

@@ -3,11 +3,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using HandheldLauncher.Input;
-using HandheldLauncher.Models;
-using HandheldLauncher.Services;
+using PadPath.Input;
+using PadPath.Models;
+using PadPath.Services;
 
-namespace HandheldLauncher;
+namespace PadPath;
 
 public partial class MainWindow : Window
 {
@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private RootConfig activeRoot = null!;
     private string currentDirectory = "";
     private string? pendingLaunchPath;
+    private bool gameIsRunning;
     private int rootIndex;
 
     public MainWindow(LauncherConfig config)
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
             BrowserList.Focus();
         };
         CompositionTarget.Rendering += UpdateControllerStatus;
+        StateChanged += (_, _) => { if (gameIsRunning && WindowState != WindowState.Minimized) WindowState = WindowState.Minimized; };
     }
 
     private void OpenInitialFolder()
@@ -101,8 +103,9 @@ public partial class MainWindow : Window
         foreach (Button button in RootButtons.Children)
         {
             var active = (int)button.Tag == rootIndex;
-            button.BorderBrush = active ? (Brush)FindResource("AccentBrush") : new SolidColorBrush(Color.FromRgb(52, 65, 91));
-            button.Foreground = active ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextBrush");
+            button.BorderBrush = (Brush)FindResource("BorderBrush");
+            button.Background = active ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("PanelBrush");
+            button.Foreground = active ? (Brush)FindResource("AccentTextBrush") : (Brush)FindResource("TextBrush");
         }
     }
 
@@ -126,15 +129,24 @@ public partial class MainWindow : Window
         LaunchNow(path);
     }
 
-    private void LaunchNow(string path)
+    private async void LaunchNow(string path)
     {
         try
         {
-            TargetLauncher.Launch(path);
-            if (config.ExitAfterLaunch) Application.Current.Shutdown();
-            else { WindowState = WindowState.Minimized; }
+            var target = TargetLauncher.Launch(path);
+            gameIsRunning = true;
+            WindowState = WindowState.Minimized;
+
+            var grace = Task.Delay(TimeSpan.FromSeconds(Math.Clamp(config.MinimumHandoffSeconds, 5, 120)));
+            try { await Task.WhenAll(target.WaitForExitAsync(), grace); }
+            catch (InvalidOperationException) { await grace; }
+
+            gameIsRunning = false;
+            WindowState = WindowState.Maximized;
+            Activate();
+            BrowserList.Focus();
         }
-        catch (Exception ex) { MessageBox.Show(ex.Message, "Launch failed", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { gameIsRunning = false; WindowState = WindowState.Maximized; MessageBox.Show(ex.Message, "Launch failed", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void GoBack()
@@ -146,6 +158,7 @@ public partial class MainWindow : Window
 
     private void HandleGamepad(GamepadAction action) => Dispatcher.Invoke(() =>
     {
+        if (action == GamepadAction.Quit) { Close(); return; }
         if (ConfirmationPanel.Visibility == Visibility.Visible)
         {
             if (action == GamepadAction.Accept && pendingLaunchPath is not null) ConfirmLaunch();
@@ -162,7 +175,6 @@ public partial class MainWindow : Window
             case GamepadAction.Back: GoBack(); break;
             case GamepadAction.Roots: OpenRoot((rootIndex + 1) % config.Roots.Count); break;
             case GamepadAction.Settings: OpenSettings(); break;
-            case GamepadAction.Quit: Close(); break;
         }
     });
 
@@ -175,6 +187,7 @@ public partial class MainWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Q) { Close(); e.Handled = true; return; }
         if (ConfirmationPanel.Visibility == Visibility.Visible)
         {
             if (e.Key is Key.Enter or Key.Space or Key.Y) ConfirmLaunch();
@@ -190,6 +203,11 @@ public partial class MainWindow : Window
     }
 
     private void BrowserList_MouseDoubleClick(object sender, MouseButtonEventArgs e) => ActivateSelection();
+    private void OpenPrompt_Click(object sender, RoutedEventArgs e) => ActivateSelection();
+    private void BackPrompt_Click(object sender, RoutedEventArgs e) => GoBack();
+    private void RootsPrompt_Click(object sender, RoutedEventArgs e) => OpenRoot((rootIndex + 1) % config.Roots.Count);
+    private void SettingsPrompt_Click(object sender, RoutedEventArgs e) => OpenSettings();
+    private void ClosePrompt_Click(object sender, RoutedEventArgs e) => Close();
     private void OpenSettings()
     {
         var setup = new SetupWindow(config, firstRun: false) { Owner = this };

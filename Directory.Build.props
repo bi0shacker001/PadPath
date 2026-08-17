@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Authors>PadPath contributors</Authors>
+    <Company>PadPath contributors</Company>
+    <Product>PadPath</Product>
+    <Copyright>Copyright © 2026 PadPath contributors</Copyright>
+    <RepositoryUrl>https://github.com/bi0shacker001/PadPath</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>
