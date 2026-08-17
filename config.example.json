@@ -1,0 +1,20 @@
+{
+  "title": "Choose a game",
+  "fullscreen": true,
+  "showHidden": false,
+  "showSystem": false,
+  "confirmBeforeLaunch": true,
+  "exitAfterLaunch": true,
+  "rememberLastFolder": true,
+  "allowedExtensions": [ ".exe", ".bat", ".cmd", ".lnk" ],
+  "roots": [
+    { "name": "Installed", "path": "D:\\Games" },
+    { "name": "Indie", "path": "C:\\Users\\YOUR_NAME\\Games" },
+    { "name": "Downloads", "path": "%USERPROFILE%\\Downloads" }
+  ],
+  "integrations": {
+    "steamShortcutExport": false,
+    "playniteExport": false,
+    "artworkDirectory": null
+  }
+}

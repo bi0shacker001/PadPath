@@ -1,0 +1,19 @@
+{
+  "title": "Choose a game",
+  "fullscreen": true,
+  "showHidden": false,
+  "showSystem": false,
+  "confirmBeforeLaunch": true,
+  "exitAfterLaunch": true,
+  "rememberLastFolder": true,
+  "allowedExtensions": [ ".exe", ".bat", ".cmd", ".lnk" ],
+  "roots": [
+    { "name": "Games", "path": "C:\\Games" },
+    { "name": "Downloads", "path": "%USERPROFILE%\\Downloads" }
+  ],
+  "integrations": {
+    "steamShortcutExport": false,
+    "playniteExport": false,
+    "artworkDirectory": null
+  }
+}

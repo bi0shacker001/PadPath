@@ -1,0 +1,102 @@
+<Window x:Class="HandheldLauncher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Handheld Launcher" Width="1280" Height="720" MinWidth="720" MinHeight="450"
+        Background="{StaticResource BackgroundBrush}" Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI Variable Display, Segoe UI" KeyDown="Window_KeyDown"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="BrowserItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Padding" Value="18,13"/>
+            <Setter Property="MinHeight" Value="66"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+            <Setter Property="BorderBrush" Value="#253047"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Card" Property="Background" Value="#183A3A"/>
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Card" Property="BorderThickness" Value="4"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#202A3C"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RootButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/><Setter Property="Background" Value="#20283A"/>
+            <Setter Property="BorderBrush" Value="#34415B"/><Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="20,12"/><Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontSize" Value="18"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="34,26,34,20">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock x:Name="TitleText" FontSize="32" FontWeight="Bold"/>
+                <TextBlock x:Name="BreadcrumbText" Margin="0,7,0,0" FontSize="17" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <Border Grid.Column="1" Background="#182235" CornerRadius="18" Padding="14,7" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal"><Ellipse x:Name="ControllerDot" Width="10" Height="10" Fill="#69758A" Margin="0,0,8,0"/><TextBlock x:Name="ControllerText" Text="CONTROLLER" FontSize="13" FontWeight="Bold"/></StackPanel>
+            </Border>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,22,0,18">
+            <StackPanel x:Name="RootButtons" Orientation="Horizontal"/>
+        </ScrollViewer>
+
+        <ListBox x:Name="BrowserList" Grid.Row="2" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource BrowserItemStyle}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="BrowserList_SelectionChanged" MouseDoubleClick="BrowserList_MouseDoubleClick">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Border Background="#29354B" CornerRadius="7" Padding="8,5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Kind}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="23" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="›" FontSize="30" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Grid Grid.Row="3" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Ⓐ OPEN / LAUNCH" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                <TextBlock Text="   Ⓑ BACK" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
+                <TextBlock Text="   ☰ ROOTS" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
+                <TextBlock Text="   Ⓨ SETTINGS" FontWeight="Bold" Foreground="{StaticResource MutedBrush}"/>
+            </StackPanel>
+            <TextBlock x:Name="CountText" HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}"/>
+        </Grid>
+
+        <Border x:Name="EmptyPanel" Grid.Row="2" Background="{StaticResource PanelBrush}" CornerRadius="14" Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="Nothing launchable here" FontSize="25" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="Press B to go back or choose another root." Margin="0,10,0,0" Foreground="{StaticResource MutedBrush}" FontSize="17"/></StackPanel>
+        </Border>
+
+        <Border x:Name="ConfirmationPanel" Grid.RowSpan="4" Background="#F20D111A" CornerRadius="18" Visibility="Collapsed" BorderBrush="{StaticResource AccentBrush}" BorderThickness="3" Padding="50" Panel.ZIndex="10">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="680">
+                <TextBlock Text="Launch this game?" FontSize="34" FontWeight="Bold" TextAlignment="Center"/>
+                <TextBlock x:Name="ConfirmationName" Margin="0,18,0,30" FontSize="24" Foreground="{StaticResource AccentBrush}" TextAlignment="Center" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="LaunchButton" Content="Ⓐ  LAUNCH" Style="{StaticResource RootButtonStyle}" Click="LaunchButton_Click" BorderBrush="{StaticResource AccentBrush}"/>
+                    <Button Content="Ⓑ  CANCEL" Style="{StaticResource RootButtonStyle}" Click="CancelButton_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

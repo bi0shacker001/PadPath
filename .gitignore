@@ -1,0 +1,9 @@
+bin/
+obj/
+dist/
+work/
+outputs/
+.vs/
+*.user
+*.suo
+src/HandheldLauncher/config.local.json
