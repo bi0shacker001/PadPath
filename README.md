@@ -22,6 +22,27 @@ The MVP is designed for small 16:9 handheld screens such as the Retroid Pocket 5
 
 No games need to be scanned, imported, or manually registered.
 
+## Selector mode
+
+Run PadPath with `--selector` to choose a launchable file without starting it. PadPath writes one JSON object to standard output and exits with code `0` after a selection. Closing without selecting writes nothing and exits with code `1`.
+
+```powershell
+PadPath.exe --selector
+```
+
+For `G:\foo\bar\gamename123\game.exe`, the output is:
+
+```json
+{
+  "directoryPath": "G:\\foo\\bar\\gamename123",
+  "fullPath": "G:\\foo\\bar\\gamename123\\game.exe",
+  "executableName": "game.exe",
+  "folderName": "gamename123"
+}
+```
+
+The result is emitted as compact single-line JSON so another process can deserialize it reliably.
+
 ## Controls
 
 | Controller | Keyboard | Action |

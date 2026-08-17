@@ -1,5 +1,5 @@
 #define MyAppName "PadPath"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.2.1"
 #define MyAppPublisher "PadPath contributors"
 #define MyAppExeName "PadPath.exe"
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,6 +13,7 @@ namespace PadPath;
 public partial class MainWindow : Window
 {
     private readonly LauncherConfig config;
+    private readonly bool selectorMode;
     private readonly FileBrowserService browser;
     private readonly XInputController? controller;
     private readonly ObservableCollection<BrowserItem> items = [];
@@ -19,20 +21,27 @@ public partial class MainWindow : Window
     private string currentDirectory = "";
     private string? pendingLaunchPath;
     private bool gameIsRunning;
+    private bool selectionReturned;
     private int rootIndex;
 
-    public MainWindow(LauncherConfig config)
+    public MainWindow(LauncherConfig config, bool selectorMode = false)
     {
         this.config = config;
+        this.selectorMode = selectorMode;
         browser = new FileBrowserService(config);
         if (!string.Equals(Environment.GetEnvironmentVariable("HANDHELD_LAUNCHER_DISABLE_CONTROLLER"), "1", StringComparison.Ordinal))
             controller = new XInputController();
         InitializeComponent();
-        TitleText.Text = config.Title;
+        TitleText.Text = selectorMode ? "Select an executable" : config.Title;
+        if (selectorMode) OpenPrompt.Content = "Ⓐ SELECT";
         BrowserList.ItemsSource = items;
         BuildRootButtons();
         if (controller is not null) controller.Pressed += HandleGamepad;
-        Closed += (_, _) => controller?.Dispose();
+        Closed += (_, _) =>
+        {
+            controller?.Dispose();
+            if (selectorMode && !selectionReturned) Application.Current.Shutdown(1);
+        };
         Loaded += (_, _) =>
         {
             if (config.Fullscreen) { WindowStyle = WindowStyle.None; WindowState = WindowState.Maximized; }
@@ -113,7 +122,24 @@ public partial class MainWindow : Window
     {
         if (BrowserList.SelectedItem is not BrowserItem item) return;
         if (item.IsDirectory) Navigate(item.FullPath);
+        else if (selectorMode) ReturnSelection(item.FullPath);
         else Launch(item.FullPath);
+    }
+
+    private void ReturnSelection(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var directoryPath = Path.GetDirectoryName(fullPath) ?? string.Empty;
+        var result = new SelectorResult(
+            directoryPath,
+            fullPath,
+            Path.GetFileName(fullPath),
+            Path.GetFileName(directoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
+        var json = JsonSerializer.Serialize(result);
+        using var writer = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
+        writer.WriteLine(json);
+        selectionReturned = true;
+        Application.Current.Shutdown(0);
     }
 
     private void Launch(string path)

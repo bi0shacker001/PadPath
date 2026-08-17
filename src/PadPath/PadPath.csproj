@@ -7,6 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>PadPath</AssemblyName>
     <RootNamespace>PadPath</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
   </PropertyGroup>
 </Project>

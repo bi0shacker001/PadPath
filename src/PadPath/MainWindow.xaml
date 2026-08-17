@@ -97,7 +97,7 @@
         <Border Grid.Row="3" Background="{DynamicResource AccentSecondaryBrush}" Margin="0,18,0,0">
           <Grid Margin="27,10">
             <StackPanel Orientation="Horizontal">
-                <Button Content="Ⓐ OPEN / LAUNCH" Style="{StaticResource PromptButtonStyle}" Click="OpenPrompt_Click"/>
+                <Button x:Name="OpenPrompt" Content="Ⓐ OPEN / LAUNCH" Style="{StaticResource PromptButtonStyle}" Click="OpenPrompt_Click"/>
                 <Button Content="Ⓑ BACK" Style="{StaticResource PromptButtonStyle}" Click="BackPrompt_Click"/>
                 <Button Content="☰ ROOTS" Style="{StaticResource PromptButtonStyle}" Click="RootsPrompt_Click"/>
                 <Button Content="Ⓨ SETTINGS" Style="{StaticResource PromptButtonStyle}" Click="SettingsPrompt_Click"/>
